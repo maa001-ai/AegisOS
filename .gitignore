@@ -2,3 +2,5 @@
 .ftpquota
 *.tmp
 *.log
+
+storage/sync-config.php
