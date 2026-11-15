@@ -1,0 +1,10 @@
+{
+    "id": "doc-1794625809-56c2cf",
+    "title": "System Architecture Whitepaper",
+    "author": "User & gemini-4-hydrogen",
+    "createdAt": "2026-11-14T03:10:09+00:00",
+    "updatedAt": "2026-11-14T03:10:09+00:00",
+    "published": true,
+    "content": "<h1>AegisOS Architecture</h1><p>High availability through dual A/B atomic zero-reboot hot-swapping.</p>",
+    "wordCount": 10
+}

@@ -1,0 +1,11 @@
+{
+    "id": "welcome-aegisdocs",
+    "title": "Welcome to AegisDocs & AegisOS Desktop",
+    "author": "AegisOS User",
+    "createdAt": "2026-11-14T03:09:55+00:00",
+    "updatedAt": "2026-11-14T03:15:32+00:00",
+    "published": true,
+    "content": "<h1>Welcome to AegisDocs &amp; AegisOS Desktop</h1><p>You are editing a live document inside <strong>AegisOS</strong> \u2014 an autonomous, self-healing operating system with dual A/B zero-reboot hot-swapping.</p><h3>What is AegisDocs?</h3><p>AegisDocs is an end-user <strong>WYSIWYG document editor and page publisher</strong> (like Microsoft Word or Google Docs) running as a native application on top of the AegisOS kernel.</p><h3>Key Features:</h3><ul><li><strong>Full Rich Text Formatting:</strong> Style headings, paragraphs, bold, italic, underline, lists, quotes, tables, and colors.</li><li><strong>AI Writing Co-Pilot:</strong> Powered by <code>gemini-4-hydrogen</code> to rewrite, summarize, generate, or polish text in real-time.</li><li><strong>One-Click Page Publishing:</strong> Click <em>Publish</em> to turn this document into a standalone, shareable web page with its own URL.</li><li><strong>Dual Partition Cloud Sync:</strong> All documents persist in <code>storage/documents/</code> and automatically synchronize between Localhost and the Live Mirror (<code>demo.liquidviz.com</code>).</li></ul><p>Start writing above or click <em>AI Co-Pilot</em> to collaborate with the kernel neural engine!</p>",
+    "wordCount": 142,
+    "publishedAt": "2026-11-14T03:15:32+00:00"
+}

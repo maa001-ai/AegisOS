@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AegisOS — Self-Healing Autonomous Kernel</title>
+    <meta name="description" content="An adaptive, self-updating operating system console with dual A/B zero-reboot hot-swapping, real sandbox verification, immutable evolution logs, and an embedded AI threat-learning engine." />
+    <meta property="og:title" content="AegisOS — Self-Healing Autonomous Kernel" />
+    <meta property="og:description" content="An adaptive, self-updating operating system console with dual A/B zero-reboot hot-swapping, real sandbox verification, immutable evolution logs, and an embedded AI threat-learning engine." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      (function() {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isSubdir = window.location.pathname.toLowerCase().startsWith('/aegisos');
+        const basePath = (isLocal && isSubdir) ? '/AegisOS' : '';
+        const baseHref = basePath ? (basePath + '/') : '/';
+        document.write('<base href="' + baseHref + '">');
+
+        const origFetch = window.fetch;
+        window.fetch = function(input, init) {
+          let url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+          if (basePath && url) {
+            if (url.startsWith('/api/os/')) {
+              url = basePath + url;
+            } else if (url.startsWith('api/os/')) {
+              url = basePath + '/' + url;
+            } else if (url.startsWith('./api/os/')) {
+              url = basePath + url.substring(1);
+            }
+            if (typeof input === 'string') {
+              input = url;
+            } else if (input && input.url) {
+              input = new Request(url, init || input);
+            }
+          }
+          return origFetch.call(this, input, init);
+        };
+        if (window.EventSource) {
+          const origES = window.EventSource;
+          window.EventSource = function(url, options) {
+            if (basePath && typeof url === 'string') {
+              if (url.startsWith('/api/os/')) url = basePath + url;
+              else if (url.startsWith('api/os/')) url = basePath + '/' + url;
+            }
+            return new origES(url, options);
+          };
+        }
+
+        // Only run mirror pull polling when on localhost
+        if (isLocal) {
+          let isSyncing = false;
+          async function syncMirrorUpdates() {
+            if (isSyncing) return;
+            isSyncing = true;
+            try {
+              await origFetch(basePath + '/api/os/remote-buffer/pull', { method: 'POST' });
+            } catch(e) {
+            } finally {
+              isSyncing = false;
+            }
+          }
+          setInterval(syncMirrorUpdates, 4000);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-beI4EiRn.js?v=2.4.2"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DNAjkstj.css?v=2.4.2">
+    <script src="./assets/voice-auth.js?v=2.4.2"></script>
+    <script src="./assets/aegis-desktop.js?v=2.4.2"></script>
+  </head>
+  <body class="bg-[#0B0F17] text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-100">
+    <div id="root"></div>
+  </body>
+</html>

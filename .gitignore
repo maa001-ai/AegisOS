@@ -1,0 +1,4 @@
+# AegisOS .gitignore
+.ftpquota
+*.tmp
+*.log

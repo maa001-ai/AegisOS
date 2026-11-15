@@ -1,0 +1,16 @@
+Options +FollowSymLinks -MultiViews
+RewriteEngine On
+
+# Block direct HTTP access to internal storage & PHP sync secrets
+RewriteRule ^storage(/.*)?$ - [F,L]
+
+# Route AegisOS API requests cleanly to PHP backend
+RewriteRule ^api/os/(.*)$ api.php?route=$1 [QSA,L]
+
+# Serve existing static files (index.html, assets/*, etc.)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Fallback for SPA routes (e.g. /system, /)
+RewriteRule ^(.*)$ index.html [L]
