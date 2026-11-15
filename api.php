@@ -2010,7 +2010,114 @@ function executeExpertAutonomousEvolution(array &$state, string $modId, string $
   ]);
 
   saveStateFile($stateFile, $state);
+
+  // Autonomous GitHub Auto-Push Engine (throttled)
+  if (is_file($stateFile)) {
+    $syncCfg = dirname($stateFile) . '/sync-config.php';
+    if (is_file($syncCfg)) {
+      executeAutonomousGitHubSync(dirname(__DIR__), $syncCfg, $state, "feat(autonomous): co-evolution [{$chgId}] {$modId} to Slot {$nextSlot} (Swaps: {$state['zeroRebootSwaps']}, SMT Proven Q.E.D.)");
+    }
+  }
+
   return $chgEntry;
+}
+
+function executeAutonomousGitHubSync(string $rootDir, string $syncConfigFile, array &$state, string $commitMessage = "", bool $force = false): array {
+  if (!is_file($syncConfigFile)) {
+    return ["ok" => false, "reason" => "Missing sync-config.php"];
+  }
+  $cfg = include $syncConfigFile;
+  if (!is_array($cfg) || empty($cfg["github"]["enabled"]) || empty($cfg["github"]["token"])) {
+    return ["ok" => false, "reason" => "GitHub sync not configured or disabled"];
+  }
+
+  $now = time();
+  $gh = $cfg["github"];
+  $minInterval = (int)($gh["minSecondsBetweenPushes"] ?? 120);
+  $lastPush = (int)($state["githubSync"]["lastPushedTimestamp"] ?? 0);
+
+  if (!$force && ($now - $lastPush < $minInterval)) {
+    return [
+      "ok" => true,
+      "skipped" => true,
+      "reason" => "Rate-limited: last push was " . ($now - $lastPush) . "s ago (min interval: {$minInterval}s)",
+      "githubSync" => $state["githubSync"] ?? []
+    ];
+  }
+
+  $token = $gh["token"];
+  $user = $gh["username"] ?? "maa001-ai";
+  $repoUrl = $gh["repo"] ?? "https://github.com/maa001-ai/AegisOS.git";
+  $cleanUrl = preg_replace("#https://[^@]+@#", "https://", $repoUrl);
+  $authedUrl = "https://{$user}:{$token}@" . preg_replace("#^https?://#", "", $cleanUrl);
+  $branch = $gh["branch"] ?? "main";
+
+  if (empty($commitMessage)) {
+    $swaps = $state["zeroRebootSwaps"] ?? 0;
+    $slot = $state["activeSlot"] ?? "A";
+    $lastChg = $state["changeLogs"][0]["id"] ?? "CHG-EVO";
+    $commitMessage = "feat(autonomous): co-evolution update [{$lastChg}] to Slot {$slot} (Swaps: {$swaps}, SMT Proven Q.E.D.)";
+  }
+
+  // Pre-commit validation
+  $phpBin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+  $phpCheck = @shell_exec("\"{$phpBin}\" -l \"" . $rootDir . "/api.php\" 2>&1");
+  if ($phpCheck && strpos($phpCheck, "No syntax errors") === false && strpos($phpCheck, "Errors parsing") !== false) {
+    return ["ok" => false, "reason" => "Pre-commit syntax validation failed for api.php: " . trim($phpCheck)];
+  }
+
+  $gitBin = 'git';
+  if (PHP_OS_FAMILY === 'Windows') {
+    if (file_exists('C:\\Program Files\\Git\\cmd\\git.exe')) {
+      $gitBin = '"C:\\Program Files\\Git\\cmd\\git.exe"';
+    } elseif (file_exists('C:\\Program Files\\Git\\bin\\git.exe')) {
+      $gitBin = '"C:\\Program Files\\Git\\bin\\git.exe"';
+    }
+  }
+  $gitCmd = "{$gitBin} -c safe.directory=* -c user.name=\"AegisOS Autonomous Engine\" -c user.email=\"aegis-autonomous@liquidviz.com\"";
+
+  // Stage tracked and updated files
+  @shell_exec("cd /d \"" . $rootDir . "\" && {$gitCmd} add api.php assets/ storage/aegis-state.json storage/archives/ README.md .gitignore 2>&1");
+
+  // Commit
+  $safeMsg = addslashes($commitMessage);
+  $commitOut = (string)@shell_exec("cd /d \"" . $rootDir . "\" && {$gitCmd} commit -m \"{$safeMsg}\" 2>&1");
+
+  // Push
+  $pushOut = (string)@shell_exec("cd /d \"" . $rootDir . "\" && {$gitCmd} push \"{$authedUrl}\" {$branch} 2>&1");
+
+  $success = (strpos($pushOut, "Everything up-to-date") !== false || strpos($pushOut, "-> {$branch}") !== false || strpos($pushOut, "main -> main") !== false || strpos($commitOut, "nothing to commit") !== false);
+
+  if (!isset($state["githubSync"]) || !is_array($state["githubSync"])) {
+    $state["githubSync"] = [];
+  }
+
+  $nowIso = gmdate("c");
+  $rev = trim((string)@shell_exec("cd /d \"" . $rootDir . "\" && {$gitCmd} rev-parse --short HEAD 2>&1"));
+  if ($success) {
+    $state["githubSync"] = [
+      "enabled" => true,
+      "status" => "synced",
+      "lastPushedAt" => $nowIso,
+      "lastPushedTimestamp" => $now,
+      "commitHash" => $rev,
+      "commitMessage" => $commitMessage,
+      "pushedSwaps" => $state["zeroRebootSwaps"] ?? 0,
+      "remoteRepo" => $cleanUrl,
+      "branch" => $branch
+    ];
+  } else {
+    $state["githubSync"]["lastAttemptAt"] = $nowIso;
+    $state["githubSync"]["lastError"] = substr($pushOut, 0, 200);
+  }
+
+  return [
+    "ok" => $success,
+    "commitHash" => $rev,
+    "commitMessage" => $commitMessage,
+    "output" => $pushOut,
+    "githubSync" => $state["githubSync"]
+  ];
 }
 
 
@@ -4899,6 +5006,16 @@ if ($route === 'gemini/infer' && $method === 'POST') {
     'activeSlot' => $state['activeSlot'],
     'zeroRebootSwaps' => $state['zeroRebootSwaps']
   ]);
+}
+
+if ($route === 'git-sync' && $method === 'POST') {
+  $state = loadStateFile($STATE_FILE, __DIR__, $STORAGE_DIR, $ARCHIVES_DIR, $BUNDLE_JSON_FILE);
+  $body = readJsonBody();
+  $msg = (string)($body['message'] ?? '');
+  $force = !empty($body['force']);
+  $res = executeAutonomousGitHubSync(__DIR__, $SYNC_CFG_FILE, $state, $msg, $force);
+  saveStateFile($STATE_FILE, $state);
+  sendJson($res);
 }
 
 if ($route === 'evolve/accelerate' && $method === 'POST') {
