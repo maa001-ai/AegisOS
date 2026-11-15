@@ -2041,6 +2041,8 @@ Connected to ${window.location.hostname}
   docs          - List saved documents
   open [id]     - Open document in AegisDocs
   uname -a      - Display host operating system architecture
+  proof         - Run seL4 invariant mathematical theorem proofs (Z3 SMT)
+  gitsync       - Synchronize AegisOS state, hot-swaps & codebase to GitHub
   clear         - Clear terminal screen
   ask [query]   - Direct prompt to gemini-4-hydrogen model\n`;
         } else if (main === 'gitsync' || main === 'git-sync' || main === 'gitpush') {
